@@ -167,13 +167,13 @@ function syncHarvestLimit() {
 }
 function showComingSoon() { const m = $("#tierLockModal"); if (m) m.classList.remove("hidden"); }
 function closeTierLock() { const m = $("#tierLockModal"); if (m) m.classList.add("hidden"); }
-async function showTierModels(pid) {
+const MODEL_FAMILY_ORDER = ["GPT", "Claude", "Gemini & Gemma", "DeepSeek", "Grok", "GLM", "Qwen", "Kimi", "Llama", "Mistral", "MiniMax", "Lainnya"]; function modelFamily(m) { const s = String(m == null ? "" : m).toLowerCase().replace(/^cf\./, ""); if (s.startsWith("openai/") || s.startsWith("gpt-")) return "GPT"; if (s.startsWith("anthropic/") || s.startsWith("claude-")) return "Claude"; if (s.startsWith("google/") || s.startsWith("gemini-") || s.startsWith("gemma-")) return "Gemini & Gemma"; if (s.includes("deepseek")) return "DeepSeek"; if (s.startsWith("x-ai/") || s.startsWith("grok-")) return "Grok"; if (s.startsWith("z-ai/") || s.startsWith("glm-")) return "GLM"; if (s.includes("qwen")) return "Qwen"; if (s.startsWith("moonshotai/") || s.startsWith("kimi-")) return "Kimi"; if (s.startsWith("meta-llama/") || s.startsWith("llama-")) return "Llama"; if (s.startsWith("mistralai/") || s.startsWith("mistral-")) return "Mistral"; if (s.includes("minimax")) return "MiniMax"; return "Lainnya"; } async function showTierModels(pid) {
   try {
     const d = await api("/api/public/providers/" + pid + "/models");
     const models = d.models || [];
     const notes = d.notes || {};
-    let list = models.map((m) => "<li>" + esc(m) + (notes[m] ? " — <i>" + esc(notes[m]) + "</i>" : "") + "</li>").join("");
-    $("#modelListBody").innerHTML = "<h3>" + esc(d.brand || "") + " — " + models.length + " model</h3><ul class='model-list'>" + list + "</ul>";
+    const groups = {}; for (const m of models) { const f = modelFamily(m); (groups[f] = groups[f] || []).push(m); } const sections = MODEL_FAMILY_ORDER.filter((f) => groups[f] && groups[f].length).map((f) => "<h4 class=\"model-family\">" + esc(f) + " · " + groups[f].length + "</h4><ul>" + groups[f].map((m) => "<li>" + esc(m) + (notes[m] ? " — <i>" + esc(notes[m]) + "</i>" : "") + "</li>").join("") + "</ul>").join("");
+    const found = allProviders().find((x) => x.provider.id == pid); const tierName = found ? (found.tier.name || found.tier.slug || "") : ""; $("#modelListBody").innerHTML = (tierName ? "<h3>" + esc(d.brand || "") + " · Tier " + esc(tierName) + "</h3><p>" + models.length + " model tersedia di tier ini</p>" : "<h3>" + esc(d.brand || "") + " — " + models.length + " model</h3>") + "<div class='model-list'>" + sections + "</div>";
     $("#modelListModal").classList.remove("hidden");
   } catch (e) { alert("Gagal memuat model: " + e.message); }
 }
